@@ -1,4 +1,5 @@
-from flask import Blueprint, jsonify, send_file
+import os
+from flask import Blueprint, jsonify, send_file, current_app
 from ..models import UploadedFile
 
 bp_resources = Blueprint('resources', __name__)
@@ -16,8 +17,9 @@ def get_resource(id):
 
 @bp_resources.route('/mp3/<filename>', methods=['GET']) 
 def get_mp3(filename):
+    saved_path = os.path.join(current_app.config["UPLOAD_FOLDER"], filename)
     return send_file(
-        f'/Users/louisw/synology/english_learning_app/backend/uploads/{filename}',
+        saved_path,
         mimetype='audio/mpeg',
         conditional=False  # True时触发下载而非播放
     )
