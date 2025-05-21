@@ -14,6 +14,7 @@ from funasr.utils.postprocess_utils import rich_transcription_postprocess
 model_dir = "iic/SenseVoiceSmall"
 model = AutoModel(
     model=model_dir,
+    disable_update=True,
     vad_model="fsmn-vad",
     vad_kwargs={"max_single_segment_time": 30000},
     device="cuda:0",

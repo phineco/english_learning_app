@@ -1,6 +1,5 @@
 from flask import Blueprint, request, jsonify, current_app
 from ..models import Recording, User, UploadedFile
-from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from .. import db
 from ..services.speech_evaluation_service import SpeechEvaluationService

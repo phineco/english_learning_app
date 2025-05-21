@@ -1,8 +1,14 @@
 # Placeholder for speech evaluation service logic
 # This service would typically interact with a third-party API or a local model
+import subprocess
 from funasr import AutoModel
 from funasr.utils.postprocess_utils import rich_transcription_postprocess
 ##/Users/louisw/.cache/modelscope/hub/models/iic/SenseVoiceSmall
+def convert_wav_to_mp3(input_path: str) -> str:
+        output_path = input_path.replace(".wav", ".mp3")
+        subprocess.run(["ffmpeg", "-i", input_path, "-ab", "192k", output_path])
+        return output_path
+        #return os.path.join(current_app.config["UPLOAD_FOLDER"], "7b393faa-33d9-4856-98f6-3c06917c93a5.mp3")
 
 class SpeechEvaluationService:
 
@@ -46,10 +52,25 @@ class SpeechEvaluationService:
             ],
             "stress_and_intonation": "Generally good, but could improve on word emphasis."
         }
-        
-        model = AutoModel(model="fsmn-vad")
+        output_path = convert_wav_to_mp3(audio_file_path)
+        print(output_path)
+
+        model_dir = "iic/SenseVoiceSmall"
+        model = AutoModel(
+            model=model_dir,
+            disable_update=True,
+            vad_model="fsmn-vad",
+            vad_kwargs={"max_single_segment_time": 30000},
+            device="cuda:0",
+        )
         res = model.generate(
-            input=audio_file_path
+            input=output_path,
+            cache={},
+            language="auto",  # "zn", "en", "yue", "ja", "ko", "nospeech"
+            use_itn=True,
+            batch_size_s=60,
+            merge_vad=True,  #
+            merge_length_s=15,
         )
         recognized_text = rich_transcription_postprocess(res[0]["text"])
         print(recognized_text)
@@ -62,6 +83,7 @@ class SpeechEvaluationService:
 
         print(f"[SpeechEvaluationService] Mocked evaluation complete.")
         return mock_score, detailed_feedback_str, recognized_text
+
 
     def transcribe_audio(self, audio_file_path: str) -> str:
         """
