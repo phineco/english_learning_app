@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "diff": "^8.0.1",
+    "sentence-splitter": "^5.0.0"
+  }
+}

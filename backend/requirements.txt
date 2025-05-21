@@ -1,0 +1,10 @@
+Flask
+Flask-SQLAlchemy
+Flask-Migrate
+python-dotenv
+Werkzeug
+Flask-JWT-Extended # Uncomment if JWT authentication is implemented
+# Add other dependencies as needed, e.g., for speech recognition API clients
+torch
+torchaudio
+funasr
