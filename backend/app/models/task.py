@@ -8,6 +8,8 @@ class Task(db.Model):
     task_id = db.Column(db.String(64), unique=True, nullable=False, index=True)  # 任务唯一标识
     resource_id = db.Column(db.Integer, db.ForeignKey('uploaded_files.id'), nullable=True)  # 关联资源，可为空
     task_type = db.Column(db.String(32), nullable=False)  # 任务类型，如 'practice', 'review', 'test'
+    cycle_type = db.Column(db.String(32), nullable=False)
+    week_days = db.Column(db.String(32), nullable=True)
     task_plan_date = db.Column(db.DateTime, nullable=False)  # 任务计划日期
     task_finish_date = db.Column(db.DateTime, nullable=True)  # 任务完成日期，可为空
     task_status = db.Column(db.String(16), nullable=False, default='pending')  # 任务状态：pending, in_progress, completed, cancelled

@@ -104,6 +104,8 @@ def create_task():
             user_id=current_user_id,
             task_id=task_id,
             resource_id=resource_id,
+            cycle_type=data['cycle_type'],
+            week_days=data['week_days'],
             task_type=data['task_type'],
             task_plan_date=task_plan_date,
             task_finish_date=task_finish_date,
