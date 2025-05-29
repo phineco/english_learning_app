@@ -4,5 +4,5 @@ from .user import User
 from .word import Word
 from .recording import Recording
 from .uploaded_file import UploadedFile
-
-__all__ = ['User', 'Word', 'Recording', 'UploadedFile']
+from .task import Task
+__all__ = ['User', 'Word', 'Recording', 'UploadedFile', 'Task']

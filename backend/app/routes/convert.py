@@ -11,6 +11,7 @@ from werkzeug.utils import secure_filename
 from funasr import AutoModel
 from funasr.utils.postprocess_utils import rich_transcription_postprocess
 ##/Users/louisw/.cache/modelscope/hub/models/iic/SenseVoiceSmall
+#/home/english_learning_app/backend/model/SenseVoiceSmall
 model_dir = "iic/SenseVoiceSmall"
 model = AutoModel(
     model=model_dir,

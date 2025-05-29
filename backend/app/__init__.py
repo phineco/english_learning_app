@@ -39,12 +39,14 @@ def create_app(config_class=Config):
     from .routes.words import bp_words
     from .routes.records import bp_records
     from .routes.convert import bp_convert
-    from.routes.resources import bp_resources
+    from .routes.resources import bp_resources
+    from .routes.tasks  import bp_tasks
 
     app.register_blueprint(bp_auth, url_prefix='/auth')
     app.register_blueprint(bp_words, url_prefix='/words')
     app.register_blueprint(bp_records, url_prefix='/records')
     app.register_blueprint(bp_convert, url_prefix='/convert')
+    app.register_blueprint(bp_tasks, url_prefix='/tasks')
     app.register_blueprint(bp_resources)
 
     with app.app_context():  # 必须使用应用上下文[5][8][9]
@@ -57,8 +59,8 @@ def create_app(config_class=Config):
 
     @app.after_request
     def add_cors_headers(response):
-        response.headers['Access-Control-Allow-Origin'] = 'http://127.0.0.1:5173'
-        response.headers['Access-Control-Allow-Methods'] = 'GET,POST,PUT,DELETE'
+        response.headers['Access-Control-Allow-Origin'] = 'http://localhost:5173'
+        response.headers['Access-Control-Allow-Methods'] = 'OPTIONS,GET,POST,PUT,DELETE'
         response.headers['Access-Control-Allow-Headers'] = 'Content-Type,Authorization'
         return response
 
