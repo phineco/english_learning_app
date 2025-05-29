@@ -2,9 +2,22 @@ from flask import Blueprint, request, jsonify, current_app
 from ..models import Recording, User, UploadedFile
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from .. import db
-from ..services.speech_evaluation_service import SpeechEvaluationService
+from funasr import AutoModel
+from funasr.utils.postprocess_utils import rich_transcription_postprocess
 import os
 from werkzeug.utils import secure_filename # For handling file uploads securely
+import subprocess
+from datetime import datetime
+
+
+model_dir = "iic/SenseVoiceSmall"
+model = AutoModel(
+    model=model_dir,
+    disable_update=True,
+    vad_model="fsmn-vad",
+    vad_kwargs={"max_single_segment_time": 30000},
+    device="cuda:0",
+)
 
 bp_records = Blueprint('records', __name__)
 
@@ -16,7 +29,10 @@ bp_records = Blueprint('records', __name__)
 #     return '.' in filename and \
 #            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-
+def convert_wav_to_mp3(input_path: str) -> str:
+        output_path = input_path.replace(".wav", ".mp3")
+        subprocess.run(["ffmpeg", "-i", input_path, "-ab", "192k", output_path])
+        return output_path
 #@jwt_required()
 @bp_records.route('/submitRecords', methods=['POST'])
 def create_recording():
@@ -48,8 +64,10 @@ def create_recording():
         print("Word not found")
         return jsonify({'message': 'Word not found'}), 404
 
+    current_time = datetime.now()
+    formatted = current_time.strftime("%Y%m%d%H%M%S")
 
-    filename = f"user_{user_id}_word_{word_id}_" + secure_filename(audio_file.filename) 
+    filename = f"user_{user_id}_word_{word_id}_{formatted}" + secure_filename(audio_file.filename) 
     upload_folder = current_app.config.get('UPLOAD_FOLDER', os.path.join(current_app.root_path, '..', 'uploads', 'recordings'))
     os.makedirs(upload_folder, exist_ok=True) # Ensure upload folder exists
     file_path = os.path.join(upload_folder, filename)
@@ -62,13 +80,26 @@ def create_recording():
    
     # Initialize SpeechEvaluationService
     # In a real app, API keys or model paths might come from config
-    speech_service = SpeechEvaluationService()
+    output_path = convert_wav_to_mp3(file_path)
+    print(output_path)
+
+    res = model.generate(
+        input=output_path,
+        cache={},
+        language="auto",  # "zn", "en", "yue", "ja", "ko", "nospeech"
+        use_itn=True,
+        batch_size_s=60,
+        merge_vad=True,  #
+        merge_length_s=15,
+    )
+    recognized_text = rich_transcription_postprocess(res[0]["text"])
 
     # Evaluate pronunciation
-    score, feedback, recognized_text = speech_service.evaluate_pronunciation(
-        audio_file_path=file_path, # Pass the actual path in a real app
-        reference_text=word.text_content
-    )
+    # score, feedback, recognized_text = speech_service.evaluate_pronunciation(
+    #     audio_file_path=file_path, # Pass the actual path in a real app
+    #     reference_text=word.text_content
+    # )
+    score, feedback = 0, ""
 
     recording = Recording(
         user_id=user.id,
@@ -81,7 +112,8 @@ def create_recording():
     db.session.add(recording)
     db.session.commit()
 
-    return jsonify({'message': 'Recording created and evaluated successfully', 'recording': recording.to_dict()}), 201
+    return jsonify({'text': recognized_text})
+    #return jsonify({'message': 'Recording created and evaluated successfully', 'recording': recording.to_dict()}), 201
     # else:
     #     return jsonify({'message': 'File type not allowed'}), 400
 

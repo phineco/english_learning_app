@@ -55,7 +55,7 @@ class SpeechEvaluationService:
         output_path = convert_wav_to_mp3(audio_file_path)
         print(output_path)
 
-        model_dir = "iic/SenseVoiceSmall"
+        model_dir = "/home/english_learning_app/backend/model/SenseVoiceSmall"
         model = AutoModel(
             model=model_dir,
             disable_update=True,
