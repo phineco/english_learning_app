@@ -4,7 +4,7 @@ import datetime
 class Recording(db.Model):
     __tablename__ = 'recordings'
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    user_id = db.Column(db.String(64), db.ForeignKey('users.id'), nullable=False)
     word_id = db.Column(db.Integer, db.ForeignKey('words.id'), nullable=False)
     audio_file_path = db.Column(db.String(512), nullable=False) # Path to the user's recording
     score = db.Column(db.Float) # Pronunciation score

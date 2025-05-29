@@ -4,7 +4,7 @@ import datetime
 class Task(db.Model):
     __tablename__ = 'tasks'
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    user_id = db.Column(db.String(64), db.ForeignKey('users.id'), nullable=False)
     task_id = db.Column(db.String(64), unique=True, nullable=False, index=True)  # 任务唯一标识
     resource_id = db.Column(db.Integer, db.ForeignKey('uploaded_files.id'), nullable=True)  # 关联资源，可为空
     task_type = db.Column(db.String(32), nullable=False)  # 任务类型，如 'practice', 'review', 'test'

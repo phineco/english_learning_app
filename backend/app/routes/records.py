@@ -35,9 +35,10 @@ def convert_wav_to_mp3(input_path: str) -> str:
         return output_path
 #@jwt_required()
 @bp_records.route('/submitRecords', methods=['POST'])
+@jwt_required()
 def create_recording():
-    #current_user_id = get_jwt_identity()
-    #user_id = current_user_id # Use user_id from JWT
+    current_user_id = get_jwt_identity()
+    user_id = current_user_id # Use user_id from JWT
 
     data = request.form
     if 'file' not in request.files or not data.get('word_id', type=int):
@@ -118,12 +119,14 @@ def create_recording():
     #     return jsonify({'message': 'File type not allowed'}), 400
 
 @bp_records.route('/user/<int:user_id>', methods=['GET'])
+@jwt_required()
 def get_user_recordings(user_id):
     user = User.query.get_or_404(user_id)
     recordings = Recording.query.filter_by(user_id=user.id).order_by(Recording.created_at.desc()).all()
     return jsonify([rec.to_dict() for rec in recordings]), 200
 
 @bp_records.route('/<int:recording_id>', methods=['GET'])
+@jwt_required()
 def get_recording(recording_id):
     recording = Recording.query.get_or_404(recording_id)
     return jsonify(recording.to_dict()), 200

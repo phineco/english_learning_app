@@ -3,10 +3,10 @@ import sys
 # DON'T CHANGE THIS !!!
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
-from flask import Flask
+from flask import Flask, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
-from flask_jwt_extended import JWTManager
+from flask_jwt_extended import JWTManager, jwt_required
 from .config import Config
 
 db = SQLAlchemy()
@@ -23,6 +23,8 @@ def create_app(config_class=Config):
     app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
     TTS_AUDIO_FOLDER = os.path.join(UPLOAD_FOLDER, 'tts_audio') # Folder for TTS generated audio
     app.config['TTS_AUDIO_FOLDER'] = TTS_AUDIO_FOLDER
+
+    app.config['JWT_SECRET_KEY'] = 'sdfsa8e@@ERRWSDXC12SZa'
 
     if not os.path.exists(UPLOAD_FOLDER):
         os.makedirs(UPLOAD_FOLDER)
@@ -46,17 +48,29 @@ def create_app(config_class=Config):
     app.register_blueprint(bp_words, url_prefix='/words')
     app.register_blueprint(bp_records, url_prefix='/records')
     app.register_blueprint(bp_convert, url_prefix='/convert')
-    app.register_blueprint(bp_tasks, url_prefix='/tasks')
+    app.register_blueprint(bp_tasks)
     app.register_blueprint(bp_resources)
 
     with app.app_context():  # 必须使用应用上下文[5][8][9]
         db.create_all()  # 创建所有继承自db.Model的类对应的表[1][2][5]
         print("数据库表已成功创建")
 
-    @app.route('/hello')
+
+    @app.route('/test')
+    @jwt_required()
     def hello():
         return "Hello, English Learning App Backend!"
+    # 添加 JWT 错误处理器
+    @jwt.unauthorized_loader
+    def missing_token_callback(error):
+        print(error)
+        return jsonify({"error": error}), 401  # 返回 401 代替 422
 
+    @jwt.invalid_token_loader
+    def invalid_token_callback(error):
+        print(error)
+        return jsonify({"error": error}), 401
+    
     @app.after_request
     def add_cors_headers(response):
         response.headers['Access-Control-Allow-Origin'] = 'http://localhost:5173'

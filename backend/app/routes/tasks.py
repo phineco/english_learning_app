@@ -109,7 +109,6 @@ def create_task():
             task_finish_date=task_finish_date,
             task_status=task_status
         )
-        
         db.session.add(task)
         db.session.commit()
         
@@ -119,6 +118,7 @@ def create_task():
         return jsonify({'error': f'日期格式错误: {str(e)}'}), 400
     except Exception as e:
         db.session.rollback()
+        print(e)
         return jsonify({'error': f'创建任务失败: {str(e)}'}), 500
 
 @bp_tasks.route('/tasks/<int:task_id>', methods=['PUT'])
@@ -266,3 +266,4 @@ def get_task_stats():
         
     except Exception as e:
         return jsonify({'error': f'获取统计信息失败: {str(e)}'}), 500
+    

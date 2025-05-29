@@ -1,10 +1,10 @@
 from flask import Blueprint, request, jsonify
 from ..models import User
 from .. import db
-from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity, JWTManager
+from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
+import uuid
 
 bp_auth = Blueprint('auth', __name__)
-
 @bp_auth.route('/register', methods=['POST'])
 def register():
     data = request.get_json()
@@ -16,7 +16,7 @@ def register():
     if User.query.filter_by(email=data['email']).first():
         return jsonify({'message': 'Email already registered'}), 400
 
-    user = User(username=data['username'], email=data['email'])
+    user = User(id=str(uuid.uuid4()), username=data['username'], email=data['email'])
     user.set_password(data['password'])
     db.session.add(user)
     db.session.commit()
@@ -43,3 +43,4 @@ def profile():
     if not user:
         return jsonify({'message': 'User not found'}), 404
     return jsonify(user.to_dict())
+
