@@ -1,5 +1,6 @@
 import os
 import sys
+from datetime import timedelta
 # DON'T CHANGE THIS !!!
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
@@ -25,6 +26,9 @@ def create_app(config_class=Config):
     app.config['TTS_AUDIO_FOLDER'] = TTS_AUDIO_FOLDER
 
     app.config['JWT_SECRET_KEY'] = 'sdfsa8e@@ERRWSDXC12SZa'
+    app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(minutes=20)  # 访问令牌过期时间
+    app.config["JWT_REFRESH_TOKEN_EXPIRES"] = timedelta(days=30)    # 刷新令牌过期时间
+    app.config["JWT_TOKEN_LOCATION"] = ["headers", "cookies"]  # 支持 header 和 cookie
 
     if not os.path.exists(UPLOAD_FOLDER):
         os.makedirs(UPLOAD_FOLDER)
@@ -55,7 +59,6 @@ def create_app(config_class=Config):
         db.create_all()  # 创建所有继承自db.Model的类对应的表[1][2][5]
         print("数据库表已成功创建")
 
-
     @app.route('/test')
     @jwt_required()
     def hello():
@@ -65,6 +68,14 @@ def create_app(config_class=Config):
     def missing_token_callback(error):
         print(error)
         return jsonify({"error": error}), 401  # 返回 401 代替 422
+    
+    # 令牌过期错误处理
+    @jwt.expired_token_loader
+    def expired_token_callback(jwt_header, jwt_payload):
+        return jsonify({
+            "msg": "Token has expired",
+            "error": "token_expired"
+        }), 401
 
     @jwt.invalid_token_loader
     def invalid_token_callback(error):
