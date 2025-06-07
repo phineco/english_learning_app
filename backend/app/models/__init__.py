@@ -5,4 +5,5 @@ from .word import Word
 from .recording import Recording
 from .uploaded_file import UploadedFile
 from .task import Task
-__all__ = ['User', 'Word', 'Recording', 'UploadedFile', 'Task']
+from .task_item import TaskItem
+__all__ = ['User', 'Word', 'Recording', 'UploadedFile', 'Task', 'TaskItem']

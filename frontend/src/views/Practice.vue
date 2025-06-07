@@ -1,13 +1,10 @@
 <template>
-  <el-card class="practice-card">
-    <el-tabs v-model="activeTab">
-      <el-tab-pane label="单词跟读练习" name="word">
-        <h2>完整听读练习: {{ wordDetail?.filename }}</h2>
+        <h2>听读练习</h2>
+        <h4>{{ wordDetail?.filename }}</h4>
         <div v-if="wordDetail">
           <p><strong>原始音频:</strong></p>
           <div class="audio-player-container">
-            <audio id="audioPlayer" controls :src="audioUrlA">
-            </audio>
+            <audio id="audioPlayer" controls :src="audioUrlA"></audio>
           </div>
           <!-- <p><strong>文字:</strong> {{ wordDetail.text_content }}</p> -->
 
@@ -19,10 +16,10 @@
               </span>
             </p>
             <p v-else>{{ wordDetail.text_content }}</p>
-            <p>Total words: {{ totalOriginalWords }}</p>
+            <!-- <p>Total words: {{ totalOriginalWords }}</p> -->
           </div>
 
-          <el-button @click="startRecording" :disabled="isRecording || !canRecord">
+          <el-button @click="startRecording" :disabled="isRecording">
             {{ isRecording ? '录音中...' : '开始录音' }}
           </el-button>
           <el-button @click="stopRecording" :disabled="!isRecording">停止录音</el-button>
@@ -53,49 +50,27 @@
         </div>
         <p v-else-if="loading">加载单词信息...</p>
         <p v-if="error">{{ error }}</p>
-      </el-tab-pane>
-      <el-tab-pane label="句子听读练习" name="sentence">
-        <div v-if="sentences.length">
-          <div class="sentence-practice">
-            <div>
-              <span>第 {{ currentSentenceIndex + 1 }} / {{ sentences.length }} 句</span>
-            </div>
-            <div class="sentence-content">{{ sentences[currentSentenceIndex] }}</div>
-            <audio :src="sentenceAudioUrl" controls></audio>
-            <div style="margin: 10px 0;">
-              <el-button @click="playSentenceAudio" :disabled="isPlayingSentenceAudio">播放句子读音</el-button>
-              <el-button @click="startSentenceRecording" :disabled="isSentenceRecording || !canRecord">
-                {{ isSentenceRecording ? '录音中...' : '开始录音' }}
-              </el-button>
-              <el-button @click="stopSentenceRecording" :disabled="!isSentenceRecording">停止录音</el-button>
-              <el-button @click="playSentenceRecording"
-                :disabled="!sentenceAudioUrls[currentSentenceIndex]">播放录音</el-button>
-            </div>
-            <div style="margin: 10px 0;">
-              <el-button @click="prevSentence" :disabled="currentSentenceIndex === 0">上一句</el-button>
-              <el-button @click="nextSentence" :disabled="currentSentenceIndex === sentences.length - 1">下一句</el-button>
-            </div>
-          </div>
-        </div>
-        <div v-else>暂无句子内容</div>
-      </el-tab-pane>
-    </el-tabs>
-  </el-card>
 </template>
 
 <script lang="ts">
 import { defineComponent, ref, onMounted, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import { ElMessage } from 'element-plus';
-import  Tokenizer  from 'sentence-tokenizer';
+// @ts-ignore
+import Tokenizer from 'sentence-tokenizer';
+// @ts-ignore
 import * as Diff from 'diff';
-import apiService from '@/services/apiService'; 
+// @ts-ignore
+import apiService from '@/services/apiService';
 
 interface WordDetail {
   id: number;
   word: string;
   pronunciation: string;
   meaning: string;
+  filename?: string;
+  text_content?: string;
+  file_path?: string;
   // Add other properties as needed
 }
 
@@ -112,8 +87,8 @@ export default defineComponent({
     const loading = ref(false);
     const error = ref<string | null>(null);
     const isRecording = ref(false);
-    const audioUrl = ref<string | null>(null);
-    const audioUrlA = ref<string | null>(null);
+    const audioUrl = ref<string | undefined>(undefined);
+    const audioUrlA = ref<string | undefined>(undefined);
     const mediaRecorder = ref<MediaRecorder | null>(null);
     const audioChunks = ref<Blob[]>([]);
     const evaluationResult = ref<EvaluationResult | null>(null);
@@ -127,35 +102,22 @@ export default defineComponent({
     const errorRate = ref(0);
     const score = ref(0);
     const displayWords = ref<{ text: string, status: 'correct' | 'incorrect' | 'none' }[]>([]);
-
-    const activeTab = ref('word');
-    const sentences = ref<string[]>([]);
-    const currentSentenceIndex = ref(0);
-    const isPlayingSentenceAudio = ref(false);
-    const isSentenceRecording = ref(false);
-    const sentenceAudioUrls = ref<string[]>([]); // 录音url数组
-    const sentenceAudioUrl = ref<string | null>(null);
-    const sentenceRecorder = ref<MediaRecorder | null>(null);
-    const sentenceAudioChunks = ref<Blob[]>([]);
-
     const fetchWordDetail = async (wordId: string) => {
       loading.value = true;
       error.value = null;
       try {
         const response = await apiService.getResourceById(wordId);
-        wordDetail.value = response;
-        totalOriginalWords.value = wordDetail.value.text_content.split(' ').length;
+        wordDetail.value = response.data;
+        /*
         // 拆分句子
-        if (wordDetail.value.text_content) {
+        if (wordDetail.value?.text_content) {
           // 使用 sentence-splitter 拆分句子
           const tokenizer = new Tokenizer('Chuck');
           tokenizer.setEntry(wordDetail.value.text_content);
           sentences.value = tokenizer.getSentences();
           console.log('Sentences:', sentences.value);
-          //const splitted = sentenceSplit(wordDetail.value.text_content).filter(s => s.type === 'Sentence').map(s => s.raw.trim());
-          //sentences.value = splitted;
           
-          sentences.value.forEach((item, index) => {
+          sentences.value.forEach((item) => {
             const url = `https://dict.youdao.com/dictvoice?type=1&audio=${item}`;
             console.log('SentenceURL:', url);
             sentenceAudioUrls.value.push(url);
@@ -167,41 +129,33 @@ export default defineComponent({
           sentences.value = [];
           sentenceAudioUrls.value = [];
         }
+        */
         console.log('Word detail:', wordDetail.value);
         // 获取音频文件 response.file_path 7b393faa-33d9-4856-98f6-3c06917c93a5.mp3
-        const mp3 = await apiService.getMp3('7b393faa-33d9-4856-98f6-3c06917c93a5.mp3', {
+        // 检查 file_path 是否存在
+        const fileStr = wordDetail.value?.file_path?.split('/') || [];
+        const mp3 = await apiService.getMp3(fileStr[fileStr.length - 1], {
           responseType: 'blob'
         });
-        audioUrlA.value = URL.createObjectURL(new Blob([mp3]));
-        /** 
-        // 模拟数据
-        if (wordId === '1') {
-          wordDetail.value = { id: 1, word: 'apple', pronunciation: '/ˈæpəl/', meaning: '苹果' };
-        } else if (wordId === '2') {
-          wordDetail.value = { id: 2, word: 'banana', pronunciation: '/bəˈnɑːnə/', meaning: '香蕉' };
-        } else {
-          wordDetail.value = { id: parseInt(wordId), word: `Word ${wordId}`, pronunciation: '/pronunciation/', meaning: '释义' };
-        }
-        ElMessage.info('单词详情加载功能待实现，当前为模拟数据');
-        */
+        audioUrlA.value = URL.createObjectURL(new Blob([mp3.data]));
       } catch (err) {
-        error.value = '加载单词详情失败';
+        error.value = '加载资源失败';
         ElMessage.error(error.value);
-        console.error('Failed to fetch word detail', err);
+        console.error('Failed to fetch resource', err);
       }
       loading.value = false;
     };
 
     const startRecording = async () => {
-      if (!canRecord.value) {
-        ElMessage.error('浏览器不支持录音功能');
-        return;
-      }
+      // if (!canRecord.value) {
+      //   ElMessage.error('浏览器不支持录音功能');
+      //   return;
+      // }
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
         mediaRecorder.value = new MediaRecorder(stream);
         audioChunks.value = [];
-        audioUrl.value = null;
+        audioUrl.value = undefined;
         evaluationResult.value = null;
 
         mediaRecorder.value.ondataavailable = (event) => {
@@ -252,12 +206,12 @@ export default defineComponent({
         formData.append('file', audioBlob, `${wordDetail.value?.word || 'recording'}.wav`);
         formData.append('word_id', String(wordDetail.value?.id));
 
-        //const response = await apiService.submitRecordingForEvaluation(formData);
-        //console.log('Evaluation result:', response);
+        const response = await apiService.submitRecordingForEvaluation(formData);
+        console.log('Evaluation result:', response);
         
         //evaluationResult.value = response;
         // ElMessage.success('评分成功');
-        processResults();
+        processResults(response.data.text);
         
         // 模拟评分结果
         setTimeout(() => {
@@ -265,7 +219,7 @@ export default defineComponent({
             score: Math.floor(Math.random() * 50) + 50, // 50-99
             feedback: '发音标准，语调自然。'
           };
-          ElMessage.info('提交评分功能待实现，当前为模拟结果');
+          //ElMessage.info('提交评分功能待实现，当前为模拟结果');
           isEvaluating.value = false;
         }, 1500);
 
@@ -276,7 +230,7 @@ export default defineComponent({
       }
     };
 
-    const getWordClass = (word) => {
+    const getWordClass = (word: any) => {
       if (word.status === 'correct') {
         return 'correct-word';
       } else if (word.status === 'incorrect') {
@@ -285,23 +239,19 @@ export default defineComponent({
       return 'pending-word';
     };
 
-    const processResults = () => {
-      const originalWords = wordDetail.value.text_content;
-      const spokenWords = 'My tower, my xoxxwer is g0oing up, my stower is going up and up.No, no, sdown comes my stower, Here is my big rred block.Here is my big blue block. My tower is going up.';
+    const processResults = (spokenWords: string) => {
+      const originalWords: string = wordDetail.value?.text_content ?? "";
+      //const spokenWords = 'My tower, my xoxxwer is g0oing up, my stower is going up and up.No, no, sdown comes my stower, Here is my big rred block.Here is my big blue block. My tower is going up.';
 
       console.log("Original:", originalWords);
       console.log("Spoken:", spokenWords);
 
-      const diffs = Diff.diffWords(originalWords, spokenWords, {
-        comparator: (left, right) => left === right // Simple string comparison
-      });
+      const diffs = Diff.diffWords(originalWords, spokenWords);
 
       console.log("Diffs:", diffs);
 
-      let newDisplayWords = [];
-      let Sidx = 0; // Spoken words index
-      let Oidx = 0; // Original words index (implicit via diff)
-
+      let newDisplayWords: { text: string; status: 'correct' | 'incorrect' | 'none' }[] = [];
+  
       diffs.forEach(part => {
         if (part.added) { // User said extra words - counts as error for overall accuracy
           // These words are not in the original text, so they don't directly map to highlighting.
@@ -311,8 +261,8 @@ export default defineComponent({
         } else if (part.removed) { // Words in original, but not spoken (or mispronounced enough to be different)
           part.value.split(' ').forEach(word => {
             newDisplayWords.push({ text: word, status: 'incorrect' });
-            //incorrectWordsCount.value++;
           });
+          incorrectWordsCount.value += part.count;
         } else { // Common part
           part.value.split(' ').forEach(word => {
             newDisplayWords.push({ text: word, status: 'correct' });
@@ -330,7 +280,7 @@ export default defineComponent({
       // The `diffArrays` method should produce parts that sum up to the length of the longer array if one is a subsequence of another,
       // or a combined length otherwise.
       // For our scoring: an error is a word from the original text that was NOT marked 'correct'.
-      incorrectWordsCount.value = totalOriginalWords.value - correctWordsCount.value;
+      totalOriginalWords.value = incorrectWordsCount.value + correctWordsCount.value;
 
 
       if (totalOriginalWords.value > 0) {
@@ -344,8 +294,8 @@ export default defineComponent({
 
     onMounted(() => {
       console.log(route.params)
-      const wordId = route.params.id as string;
-      console.log('Word ID:', wordId);
+      const wordId = route.params.resId as string;
+      console.log('Resource ID:', wordId);
       if (wordId) {
         fetchWordDetail(wordId);
       } else {
@@ -354,73 +304,6 @@ export default defineComponent({
         ElMessage.warning(error.value);
       }
     });
-
-    const playSentenceAudio = async () => {
-      if (!sentences.value.length) return;
-      isPlayingSentenceAudio.value = true;
-      try {
-       sentenceAudioUrl.value = sentenceAudioUrls.value[currentSentenceIndex.value];
-      } catch (err) {
-        isPlayingSentenceAudio.value = false;
-        ElMessage.error('获取句子音频失败');
-      }
-    };
-
-    const startSentenceRecording = async () => {
-      if (!canRecord.value) {
-        ElMessage.error('浏览器不支持录音功能');
-        return;
-      }
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        sentenceRecorder.value = new MediaRecorder(stream);
-        sentenceAudioChunks.value = [];
-        isSentenceRecording.value = true;
-        sentenceRecorder.value.ondataavailable = (event) => {
-          sentenceAudioChunks.value.push(event.data);
-        };
-        sentenceRecorder.value.onstop = () => {
-          //const audioBlob = new Blob(sentenceAudioChunks.value, { type: 'audio/wav' });
-          //sentenceAudioUrls.value[currentSentenceIndex.value] = URL.createObjectURL(audioBlob);
-          // 释放资源
-          stream.getTracks().forEach(track => track.stop());
-          isSentenceRecording.value = false;
-        };
-        sentenceRecorder.value.start();
-      } catch (err) {
-        isSentenceRecording.value = false;
-        ElMessage.error('录音启动失败');
-      }
-    };
-
-    const stopSentenceRecording = () => {
-      if (sentenceRecorder.value && isSentenceRecording.value) {
-        sentenceRecorder.value.stop();
-      }
-    };
-
-    const playSentenceRecording = () => {
-      const url = sentenceAudioUrls.value[currentSentenceIndex.value];
-      if (!url) {
-        ElMessage.error('当前句子没有录音');
-        return;
-      }
-      sentenceAudioUrl.value = url;
-      //const audio = new Audio(url);
-      //audio.play();
-    };
-
-    const prevSentence = () => {
-      if (currentSentenceIndex.value > 0) {
-        currentSentenceIndex.value--;
-      }
-    };
-
-    const nextSentence = () => {
-      if (currentSentenceIndex.value < sentences.value.length - 1) {
-        currentSentenceIndex.value++;
-      }
-    };
 
     return {
       route,
@@ -441,26 +324,11 @@ export default defineComponent({
       errorRate,
       score,
       displayWords,
-      activeTab,
-      sentences,
-      currentSentenceIndex,
-      isPlayingSentenceAudio,
-      isSentenceRecording,
-      sentenceAudioUrls,
-      sentenceAudioUrl,
-      sentenceRecorder,
-      sentenceAudioChunks,
       startRecording,
       stopRecording,
       playRecording,
       submitRecording,
       getWordClass,
-      playSentenceAudio,
-      startSentenceRecording,
-      stopSentenceRecording,
-      playSentenceRecording,
-      prevSentence,
-      nextSentence,
     };
   },
 });
@@ -472,9 +340,23 @@ export default defineComponent({
   margin: 20px auto;
   padding: 20px;
 }
+
+.practice-card h2 {
+  font-size: 20px;
+  margin-bottom: 15px;
+  text-align: center;
+}
+
 .audio-player-container {
   margin-top: 20px;
+  text-align: center;
 }
+
+.audio-player-container audio {
+  width: 100%;
+  max-width: 400px;
+}
+
 .evaluation-result {
   margin-top: 20px;
   padding: 15px;
@@ -483,21 +365,198 @@ export default defineComponent({
   background-color: #f9f9f9;
 }
 
+.evaluation-result h2 {
+  font-size: 18px;
+  margin-bottom: 10px;
+}
+
+.evaluation-result .score {
+  font-size: 18px;
+  font-weight: bold;
+  color: #409eff;
+}
+
+.reference-text-container {
+  margin: 20px 0;
+  padding: 15px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+}
+
+.reference-text {
+  font-size: 16px;
+  line-height: 1.6;
+  margin: 10px 0;
+}
+
+.sentence-practice {
+  text-align: center;
+}
+
+.sentence-content {
+  font-size: 18px;
+  font-weight: bold;
+  margin: 20px 0;
+  padding: 15px;
+  background-color: #f0f9ff;
+  border-radius: 8px;
+  line-height: 1.5;
+}
+
 .pending-word {
   /* Default style */
 }
 
 .correct-word {
   color: #27ae60;
-  /* Green */
   font-weight: bold;
 }
 
 .incorrect-word {
   color: #c0392b;
-  /* Red */
   background-color: #fdd;
   text-decoration: line-through;
   font-weight: bold;
+}
+
+.el-button {
+  margin: 5px;
+  min-height: 40px;
+}
+
+/* 移动端优化 */
+@media (max-width: 768px) {
+  .practice-card {
+    margin: 10px;
+    padding: 15px;
+  }
+  
+  .practice-card h2 {
+    font-size: 22px;
+    margin-bottom: 20px;
+  }
+  
+  .audio-player-container {
+    margin: 25px 0;
+  }
+  
+  .audio-player-container audio {
+    width: 100%;
+    height: 50px;
+  }
+  
+  .reference-text-container {
+    margin: 25px 0;
+    padding: 20px 15px;
+  }
+  
+  .reference-text-container h2 {
+    font-size: 20px;
+    margin-bottom: 15px;
+  }
+  
+  .reference-text {
+    font-size: 17px;
+    line-height: 1.7;
+  }
+  
+  .sentence-content {
+    font-size: 19px;
+    margin: 25px 0;
+    padding: 20px 15px;
+  }
+  
+  .evaluation-result {
+    margin: 25px 0;
+    padding: 20px 15px;
+  }
+  
+  .evaluation-result h2 {
+    font-size: 20px;
+    margin-bottom: 15px;
+  }
+  
+  .evaluation-result p {
+    font-size: 16px;
+    margin-bottom: 10px;
+  }
+  
+  .evaluation-result .score {
+    font-size: 20px;
+  }
+  
+  .el-button {
+    margin: 8px 4px;
+    min-height: 48px;
+    font-size: 16px;
+    border-radius: 8px;
+    padding: 12px 20px;
+  }
+  
+  .el-tabs__header {
+    margin-bottom: 20px;
+  }
+  
+  .el-tabs__item {
+    font-size: 16px;
+    padding: 0 15px;
+  }
+}
+
+/* 小屏幕手机优化 */
+@media (max-width: 480px) {
+  .practice-card {
+    margin: 5px;
+    padding: 12px;
+  }
+  
+  .practice-card h2 {
+    font-size: 20px;
+  }
+  
+  .reference-text {
+    font-size: 16px;
+  }
+  
+  .sentence-content {
+    font-size: 17px;
+    padding: 15px 12px;
+  }
+  
+  .evaluation-result {
+    padding: 15px 12px;
+  }
+  
+  .el-button {
+    margin: 6px 2px;
+    min-height: 44px;
+    font-size: 15px;
+    padding: 10px 15px;
+  }
+  
+  .el-tabs__item {
+    font-size: 14px;
+    padding: 0 10px;
+  }
+}
+
+/* 按钮组布局优化 */
+@media (max-width: 768px) {
+  .sentence-practice > div {
+    margin-bottom: 15px;
+  }
+  
+  .sentence-practice > div:last-child {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
+  }
+  
+  .sentence-practice .el-button {
+    flex: 1;
+    min-width: 120px;
+    max-width: 200px;
+  }
 }
 </style>

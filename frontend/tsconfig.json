@@ -2,6 +2,10 @@
   "files": [],
   "compilerOptions": {
     "moduleResolution": "node",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    },
     "types": [
       "vite/client",
       "element-plus/global",

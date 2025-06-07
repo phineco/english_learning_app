@@ -30,6 +30,9 @@ def create_app(config_class=Config):
     app.config["JWT_REFRESH_TOKEN_EXPIRES"] = timedelta(days=30)    # 刷新令牌过期时间
     app.config["JWT_TOKEN_LOCATION"] = ["headers", "cookies"]  # 支持 header 和 cookie
 
+    app.config['TIMEZONE'] = 'Asia/Shanghai'  # 默认应用时区UTC
+
+    # 检查文件夹是否存在，如果不存在则创建
     if not os.path.exists(UPLOAD_FOLDER):
         os.makedirs(UPLOAD_FOLDER)
     if not os.path.exists(TTS_AUDIO_FOLDER):
@@ -47,6 +50,7 @@ def create_app(config_class=Config):
     from .routes.convert import bp_convert
     from .routes.resources import bp_resources
     from .routes.tasks  import bp_tasks
+    from .routes.task_items import bp_task_items
 
     app.register_blueprint(bp_auth, url_prefix='/auth')
     app.register_blueprint(bp_words, url_prefix='/words')
@@ -54,6 +58,7 @@ def create_app(config_class=Config):
     app.register_blueprint(bp_convert, url_prefix='/convert')
     app.register_blueprint(bp_tasks)
     app.register_blueprint(bp_resources)
+    app.register_blueprint(bp_task_items)
 
     with app.app_context():  # 必须使用应用上下文[5][8][9]
         db.create_all()  # 创建所有继承自db.Model的类对应的表[1][2][5]

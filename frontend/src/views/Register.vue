@@ -1,5 +1,4 @@
 <template>
-  <el-card class="register-card">
     <h2>用户注册</h2>
     <el-form @submit.prevent="handleRegister">
       <el-form-item label="用户名">
@@ -19,14 +18,13 @@
       </el-form-item>
     </el-form>
     <p>已有账户? <router-link to="/login">立即登录</router-link></p>
-  </el-card>
 </template>
 
 <script lang="ts">
 import { defineComponent, ref } from 'vue';
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus';
-import apiService from '@/services/apiService'; // 稍后会创建
+import apiService from '../services/apiService'; // 稍后会创建
 
 export default defineComponent({
   name: 'RegisterView',
@@ -72,5 +70,81 @@ export default defineComponent({
   max-width: 450px;
   margin: 50px auto;
   padding: 20px;
+}
+
+.register-card h2 {
+  text-align: center;
+  margin-bottom: 30px;
+  font-size: 24px;
+}
+
+.register-card .el-button {
+  width: 100%;
+  height: 44px;
+  font-size: 16px;
+  margin-top: 10px;
+}
+
+.register-card p {
+  text-align: center;
+  margin-top: 20px;
+  font-size: 14px;
+}
+
+/* 移动端优化 */
+@media (max-width: 768px) {
+  .register-card {
+    max-width: 90%;
+    margin: 20px auto;
+    padding: 25px 20px;
+  }
+  
+  .register-card h2 {
+    font-size: 26px;
+    margin-bottom: 25px;
+  }
+  
+  .register-card .el-form-item {
+    margin-bottom: 20px;
+  }
+  
+  .register-card .el-input {
+    height: 48px;
+  }
+  
+  .register-card .el-input__inner {
+    height: 48px;
+    font-size: 16px;
+    padding: 0 15px;
+  }
+  
+  .register-card .el-button {
+    height: 50px;
+    font-size: 18px;
+    border-radius: 8px;
+    margin-top: 15px;
+  }
+  
+  .register-card p {
+    font-size: 16px;
+    margin-top: 25px;
+  }
+}
+
+/* 小屏幕手机优化 */
+@media (max-width: 480px) {
+  .register-card {
+    max-width: 95%;
+    margin: 15px auto;
+    padding: 20px 15px;
+  }
+  
+  .register-card h2 {
+    font-size: 24px;
+  }
+  
+  .register-card .el-form-item__label {
+    font-size: 15px;
+  }
 }
 </style>

@@ -10,7 +10,7 @@ class Recording(db.Model):
     score = db.Column(db.Float) # Pronunciation score
     feedback = db.Column(db.Text) # Detailed feedback (e.g., mispronounced phonemes)
     recognized_text = db.Column(db.Text) # Text recognized from user's speech
-    created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.datetime.now)
 
     user = db.relationship('User', backref=db.backref('recordings', lazy='dynamic'))
     word = db.relationship('Word', backref=db.backref('recordings', lazy='dynamic'))
@@ -27,7 +27,7 @@ class Recording(db.Model):
             'score': self.score,
             'feedback': self.feedback,
             'recognized_text': self.recognized_text,
-            'created_at': self.created_at.isoformat() + 'Z',
+            'created_at': self.created_at,
             'user_username': self.user.username if self.user else None,
             'word_text': self.word.text if self.word else None
         }

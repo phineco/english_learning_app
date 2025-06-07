@@ -14,16 +14,22 @@ apiClient.interceptors.request.use(
     const token = localStorage.getItem('access_token');
     const expire = localStorage.getItem('access_token_expire');
     const now = new Date().getTime();
-    if (token && expire && now < Number(expire)) {
-      config.headers.Authorization = `Bearer ${token}`;
+
+    // 检查访问令牌是否即将过期（如5分钟内）, 则刷新token
+    if (token && expire && now + 5 * 60 * 1000 > Number(expire)) {
+      return refreshAccessToken().then(() => {
+        const newToken = localStorage.getItem('access_token');
+        config.headers.Authorization = `Bearer ${newToken}`;
+        return config;
+      });
     } else if (config.url !== '/auth/login' && config.url !== '/auth/register') {
-      // 非登录注册接口且无效token，跳转登录页
-      window.location.href = '/login';
-      return Promise.reject(new Error('未登录或登录已过期'));
+      config.headers.Authorization = `Bearer ${token}`;
     }
+    
     return config;
   },
   (error) => {
+    console.error(error);
     return Promise.reject(error);
   }
 );
@@ -31,7 +37,7 @@ apiClient.interceptors.request.use(
 // 响应拦截器，例如处理全局错误
 apiClient.interceptors.response.use(
   (response) => {
-    return response.data;
+    return response;
   },
   (error) => {
     console.error(error);
@@ -39,11 +45,51 @@ apiClient.interceptors.response.use(
     if (error.response && error.response.status === 401) {
       localStorage.removeItem('access_token');
       localStorage.removeItem('access_token_expire');
+      localStorage.removeItem('refresh_token');
+      localStorage.removeItem('refresh_token_expire');
       window.location.href = '/login';
     }
     return Promise.reject(error);
   }
 );
+
+async function refreshAccessToken() {
+  let refreshToken = localStorage.getItem('refresh_token');
+  const refreshExpire = localStorage.getItem('refresh_token_expire');
+  const now = new Date().getTime();
+
+  // 检查refresh token是否过期
+  if (!refreshToken || (refreshExpire && now >= Number(refreshExpire))) {
+    window.location.href = '/login';
+    throw new Error('Refresh token已过期');
+  }
+
+  try {
+    const response = await axios.post(`${import.meta.env.VITE_API_BASE_URL || '/api'}/auth/refresh`, {}, {
+      headers: {
+        Authorization: `Bearer ${refreshToken}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    // 更新访问令牌
+    let accessToken = response.data.access_token;
+    localStorage.setItem('access_token', accessToken);
+    const now = new Date().getTime();
+    const access_expire = now + 20 * 60 * 1000;
+    localStorage.setItem('access_token_expire', access_expire.toString());
+    // 可选：更新刷新令牌（如果后端返回新的刷新令牌）
+    // if (response.data.refresh_token) {
+    //   refreshToken = response.data.refresh_token;
+    //   localStorage.setItem('refresh_token', refreshToken);
+    // }
+  } catch (refreshError) {
+    console.error('刷新访问令牌失败', refreshError);
+    // 刷新失败 - 退出登录
+    window.location.href = '/login';
+    throw refreshError;
+  }
+}
 
 export default {
   // 认证相关
@@ -87,6 +133,9 @@ export default {
   getResourceById(id: string | number) {
     return apiClient.get(`/resources/${id}`);
   },
+  updateResource(id: string | number, data: any) {
+    return apiClient.put(`/resources/${id}`, data);
+  },
   // 新增：文本转语音
   textToSpeech(formData: FormData) {
     return apiClient.post('/convert/text-to-speech', formData, {
@@ -102,6 +151,57 @@ export default {
 
   getMp3(url: string, config = {}) {
     return apiClient.get(`/mp3/${url}`, { ...config, responseType: 'blob' });
+  },
+
+  // 任务相关
+  getTasks(params?: any) {
+    return apiClient.get('/tasks', { params });
+  },
+  getTaskById(id: string | number) {
+    return apiClient.get(`/tasks/${id}`);
+  },
+  createTask(data: any) {
+    console.log(data);
+    return apiClient.post('/tasks', data);
+  },
+  updateTask(id: string | number, data: any) {
+    return apiClient.put(`/tasks/${id}`, data);
+  },
+  deleteTask(id: string | number) {
+    return apiClient.delete(`/tasks/${id}`);
+  },
+  batchDeleteTasks(ids: number[]) {
+    return apiClient.delete('/tasks/batch', { data: { ids } });
+  },
+  getTaskStats() {
+    return apiClient.get('/tasks/stats');
+  },
+
+  // 任务项相关
+  getTaskItems(params?: any) {
+    return apiClient.get('/task-items', { params });
+  },
+  getTaskItemById(id: string | number) {
+    return apiClient.get(`/task-items/${id}`);
+  },
+  createTaskItem(data: any) {
+    return apiClient.post('/task-items', data);
+  },
+  updateTaskItem(id: string | number, data: any) {
+    return apiClient.put(`/task-items/${id}`, data);
+  },
+  deleteTaskItem(id: string | number) {
+    return apiClient.delete(`/task-items/${id}`);
+  },
+  getTaskItemsByTask(taskId: string | number, params?: any) {
+    return apiClient.get(`/tasks/${taskId}/items`, { params });
+  },
+  getUncompletedTaskItems() {
+    return apiClient.get('/task-items/uncompleted');
+  },
+
+  test() {
+    return apiClient.get('/test');
   }
 };
 

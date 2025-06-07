@@ -10,7 +10,7 @@ class Word(db.Model):
     example_sentence = db.Column(db.Text)
     audio_url = db.Column(db.String(512)) # URL to a standard pronunciation audio
     difficulty_level = db.Column(db.Integer, default=1) # e.g., 1-5
-    created_at = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime.datetime.now)
 
     # recordings = db.relationship('Recording', backref='word', lazy='dynamic')
 
@@ -26,5 +26,5 @@ class Word(db.Model):
             'example_sentence': self.example_sentence,
             'audio_url': self.audio_url,
             'difficulty_level': self.difficulty_level,
-            'created_at': self.created_at.isoformat() + 'Z'
+            'created_at': self.created_at
         }

@@ -9,7 +9,7 @@ class UploadedFile(db.Model):
     file_path = db.Column(db.String(512), nullable=False)
     text_content = db.Column(db.String(3000), nullable=False)
     file_type = db.Column(db.String(32), nullable=False)  # 例如 'mp3', 'txt'
-    upload_time = db.Column(db.DateTime, default=datetime.datetime.utcnow)
+    upload_time = db.Column(db.DateTime, default=datetime.datetime.now)
 
     user = db.relationship('User', backref=db.backref('uploaded_files', lazy='dynamic'))
 
@@ -24,6 +24,6 @@ class UploadedFile(db.Model):
             'file_path': self.file_path,
             'file_type': self.file_type,
             'text_content': self.text_content,
-            'upload_time': self.upload_time.isoformat() + 'Z',
+            'upload_time': self.upload_time,
             'user_username': self.user.username if self.user else None
         }

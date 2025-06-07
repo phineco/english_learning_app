@@ -4,6 +4,7 @@ from .. import db
 from ..models.task import Task
 from ..models.user import User
 from ..models.uploaded_file import UploadedFile
+from ..models.task_item import TaskItem
 import datetime
 import uuid
 
@@ -102,7 +103,7 @@ def create_task():
         # 创建任务
         task = Task(
             user_id=current_user_id,
-            task_id=task_id,
+            id=task_id,
             resource_id=resource_id,
             cycle_type=data['cycle_type'],
             week_days=data['week_days'],
@@ -111,6 +112,11 @@ def create_task():
             task_finish_date=task_finish_date,
             task_status=task_status
         )
+        
+        
+        # 根据cycle_type创建task_item
+        task_num = create_task_items_by_cycle(task, data['cycle_type'], data.get('week_days', ''), task_plan_date, task_finish_date)
+        task.task_num = task_num
         db.session.add(task)
         db.session.commit()
         
@@ -121,7 +127,93 @@ def create_task():
     except Exception as e:
         db.session.rollback()
         print(e)
-        return jsonify({'error': f'创建任务失败: {str(e)}'}), 500
+        return jsonify({'error': f'批量删除任务失败: {str(e)}'}), 500
+
+
+def create_task_items_by_cycle(task, cycle_type, week_days, start_date, end_date=None) -> int:
+    """根据周期类型创建任务项"""
+    from datetime import datetime, timedelta
+    
+    task_items_count = 0  # 统计创建的任务项数量
+    
+    if cycle_type == 'daily':
+        # 每日任务：在开始日期和结束日期范围内创建任务项
+        current_date = start_date
+        while end_date is None or current_date <= end_date:
+            task_item = TaskItem(
+                user_id=task.user_id,
+                task_id=task.id,
+                resource_id=task.resource_id,
+                plan_time=current_date,
+                end_time=None,
+                score=None
+            )
+            db.session.add(task_item)
+            task_items_count += 1
+            current_date += timedelta(days=1)
+            
+            # 如果没有结束日期，默认创建30天
+            if end_date is None and current_date > start_date + timedelta(days=29):
+                break
+    
+    elif cycle_type == 'weekly' and week_days:
+        # 每周任务：根据指定的星期几在日期范围内创建任务项
+        try:
+            week_day_list = [int(day.strip()) for day in week_days.split(',') if day.strip().isdigit()]
+        except:
+            week_day_list = []
+        
+        if week_day_list:
+            current_date = start_date
+            week = 0
+            
+            while True:
+                week_has_items = False
+                for week_day in week_day_list:
+                    # 计算该周的指定星期几
+                    days_ahead = week_day - current_date.weekday()
+                    if days_ahead < 0:  # 如果已经过了这个星期几
+                        days_ahead += 7
+                    
+                    item_date = current_date + timedelta(days=days_ahead + week * 7)
+                    
+                    # 检查是否在结束日期范围内
+                    if end_date is None or item_date <= end_date:
+                        task_item = TaskItem(
+                            user_id=task.user_id,
+                            task_id=task.id,
+                            resource_id=task.resource_id,
+                            plan_time=item_date,
+                            end_time=None,
+                            score=None
+                        )
+                        db.session.add(task_item)
+                        task_items_count += 1
+                        week_has_items = True
+                
+                week += 1
+                
+                # 如果没有结束日期，默认创建12周
+                if end_date is None and week >= 12:
+                    break
+                # 如果有结束日期且这周没有创建任何项目，说明已经超出范围
+                elif end_date is not None and not week_has_items:
+                    break
+    
+    elif cycle_type == 'once':
+        # 一次性任务：只创建一个任务项
+        task_item = TaskItem(
+            user_id=task.user_id,
+            task_id=task.id,
+            resource_id=task.resource_id,
+            plan_time=datetime.datetime.now(),
+            begin_time=None,
+            end_time=None,
+            score=None
+        )
+        db.session.add(task_item)
+        task_items_count += 1
+    return task_items_count
 
 @bp_tasks.route('/tasks/<int:task_id>', methods=['PUT'])
 @jwt_required()
@@ -150,7 +242,7 @@ def update_task(task_id):
             
             # 如果状态改为completed，自动设置完成时间
             if data['task_status'] == 'completed' and not task.task_finish_date:
-                task.task_finish_date = datetime.datetime.utcnow()
+                task.task_finish_date = datetime.datetime.now()
         
         if 'resource_id' in data:
             if data['resource_id']:
@@ -169,7 +261,7 @@ def update_task(task_id):
                 task.task_finish_date = None
         
         # 更新时间自动更新
-        task.update_date = datetime.datetime.utcnow()
+        task.update_date = datetime.datetime.now()
         
         db.session.commit()
         
